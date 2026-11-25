@@ -68,14 +68,14 @@ function lineDecode(gray) { let lo = 255, hi = 0; for (const x of gray) {
         }
     }
 } return out; }
-export function decodeImage({ data, width, height }) {
+export function decodeImage({ data, width, height }, exhaustive=false) {
     if (width < 100 || height < 20 || data.length !== width * height * 4 || width * height > 3000000)
         return [];
     const lum = (x, y) => { const i = (y * width + x) * 4; return (data[i] * 77 + data[i + 1] * 150 + data[i + 2] * 29) >> 8; };
-    function sweep(slopes) { const hits = []; for (const vertical of [false, true])
+    function sweep(slopes, dense=false) { const hits = []; for (const vertical of [false, true])
         for (const slope of slopes) {
             const extent = vertical ? width : height, len = vertical ? height : width;
-            const step = Math.max(2, Math.floor(extent / 30));
+            const step = Math.max(2, Math.min(dense?10:48, Math.floor(extent / 40)));
             for (let pos = Math.floor(step / 2); pos < extent; pos += step) {
                 const gray = new Uint8Array(len);
                 let start = -1, end = -1;
@@ -106,12 +106,14 @@ export function decodeImage({ data, width, height }) {
                 }
             }
         } return hits.filter(h => h.n >= 2); }
-    const straight = sweep([0]);
-    if (straight.length)
+    const straight = sweep([0],true);
+    if (straight.length && !exhaustive)
         return straight.map(h => h.code);
     // Angled fallback only when horizontal/vertical passes found no symbol. Each
     // direction is assessed independently; ambiguous different codes stay blocked.
-    const angled = sweep([-.087, .087, -.212, .212, -.364, .364, -.55, .55]);
+    const slopes=[-.087,.087,-.176,.176,-.268,.268,-.364,.364,-.466,.466,-.577,.577,-.700,.700,-.839,.839,-1,1];
+    let angled=sweep(slopes);if(!angled.length&&!straight.length)angled=sweep(slopes,true);
+    if(straight.length){const codes=straight.map(h=>h.code);for(const h of angled)if(!codes.includes(h.code))codes.push(h.code);return codes;}
     const unique = new Set(angled.map(h => h.code));
     if (unique.size > 1)
         return [...unique];
