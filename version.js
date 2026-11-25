@@ -1,0 +1,1 @@
+export const VERSION="816243b408c5757e"; export const ASSETS=["camera.js", "decode-worker.js", "decoder.js", "domain.js", "icon-192.png", "icon-512.png", "import-worker.js", "./", "main.js", "manifest.webmanifest", "odt.js", "selftest.png", "style.css", "zip.js", "version.js"];
